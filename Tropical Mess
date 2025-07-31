@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🍍 Tropical Cocktail Mixer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap" rel="stylesheet">
+  <style>
+    /* Hawaiian‑Caribbean theming (unchanged from previous) */
+    body {
+      font-family: 'Kaushan Script', cursive;
+      background-image: url('https://i.imgur.com/0JfXg6Y.jpg');
+      background-size: cover;
+      background-attachment: fixed;
+      color: #fffce8;
+      padding: 20px;
+    }
+    label { margin-top:15px; display:block; font-size:1.2em; }
+    input { width:100%; padding:8px; border-radius:8px; margin-top:5px; background:rgba(255,255,255,0.2); color:#fff; border:2px solid #fbc02d; }
+  </style>
+</head>
+<body>
+  <h1>🌺 Aloha & Irie Cocktail Mixer 🍹</h1>
+  <div class="classic-drinks">
+    <button onclick="fetchClassicByName('Pina Colada')">Pina Colada</button>
+    <button onclick="fetchClassicByName('Mai Tai')">Mai Tai</button>
+    <button onclick="fetchClassicByName('Zombie')">Zombie</button>
+    <button onclick="fetchClassicByName('Painkiller')">Painkiller</button>
+  </div>
+  <hr>
+
+  <label>Spirits:</label><input type="text" id="spirits" placeholder="e.g., rum, vodka, tequila">
+  <label>Mixers:</label><input type="text" id="mixers" placeholder="e.g., soda water, ginger beer">
+  <label>Juices/Fruits:</label><input type="text" id="juices" placeholder="e.g., lime juice, pineapple juice">
+  <label>Sweeteners / Flavors:</label><input type="text" id="flavors" placeholder="e.g., honey, grenadine">
+  <label>Tools / Ice:</label><input type="text" id="tools" placeholder="e.g., blender, shaker">
+
+  <div id="blender"><img src="https://i.imgur.com/IwcU5ML.png" width="140"><p>🌀 Toss into the island blender!</p></div>
+  <button onclick="generateCocktails()">🌊 Blend Me a Drink!</button>
+  <div id="output"></div>
+
+<script>
+  // Ingredient categories
+  const ingredientCategories = {
+    "Base Spirits": ["Rum","Vodka","Tequila","Gin","Whiskey","Brandy"],
+    "Fruit Juices": ["Lime Juice","Lemon Juice","Orange Juice","Pineapple Juice","Grapefruit Juice","Passionfruit Juice"],
+    "Sweeteners": ["Simple Syrup","Honey Syrup","Orgeat","Falernum","Grenadine","Maple Syrup"],
+    "Bitters & Tinctures": ["Angostura Bitters","Peychaud’s Bitters","Orange Bitters","Herbsaint"],
+    "Modifiers": ["Triple Sec","Cointreau","Amaretto","Chartreuse","Campari","Blue Curaçao","Allspice Dram"],
+    "Tropical Add‑ins": ["Coconut Cream","Banana Liqueur","Tamarind Paste","Passionfruit Purée"],
+    "Sodas & Bubbles": ["Club Soda","Ginger Beer","Tonic Water","Cola"],
+    "Herbs & Spices": ["Mint","Cherry","Lime Wheel","Pineapple Wedge","Nutmeg","Cinnamon","Clove","Thai Chili"]
+  };
+
+  function categorizeIngredient(name) {
+    for (const [cat, list] of Object.entries(ingredientCategories)) {
+      if (list.some(i => i.toLowerCase() === name.toLowerCase())) return cat;
+    }
+    return "Other";
+  }
+
+  // Fetch classic from TheCocktailDB
+  const API = 'https://www.thecocktaildb.com/api/json/v1/1/search.php?s=';
+  async function fetchClassicByName(name) {
+    const res = await fetch(API + encodeURIComponent(name));
+    const data = await res.json();
+    if (data.drinks && data.drinks[0]) showFetchedClassic(data.drinks[0]);
+  }
+  function showFetchedClassic(drink) {
+    const ingr = [];
+    for (let i = 1; i <= 15; i++) {
+      const ing = drink[`strIngredient${i}`];
+      if (ing) ingr.push(ing);
+    }
+    const output = document.getElementById('output');
+    output.innerHTML = `
+      <h2>🍍 ${drink.strDrink}</h2>
+      <p><strong>Ingredients:</strong> ${ingr.join(', ')}</p>
+      <p><strong>Instructions:</strong> ${drink.strInstructions}</p>
+      <div><button onclick='remix("${drink.strDrink}", ${JSON.stringify(ingr)})'>🔁 Remix this drink</button></div>
+    `;
+  }
+
+  function remix(name, classicIngredients) {
+    const spirits = document.getElementById("spirits").value.split(",").map(i=>i.trim());
+    const mixers = document.getElementById("mixers").value.split(",").map(i=>i.trim());
+    const juices = document.getElementById("juices").value.split(",").map(i=>i.trim());
+    const flavors = document.getElementById("flavors").value.split(",").map(i=>i.trim());
+    const userIng = [...spirits, ...mixers, ...juices, ...flavors].filter(i=>i);
+    const chosen = classicIngredients.filter(i => userIng.includes(i));
+    const missingCats = Object.keys(ingredientCategories).filter(cat => 
+      !chosen.some(i => categorizeIngredient(i) === cat)
+    );
+    const extras = missingCats.slice(0,2).map(cat => {
+      return ingredientCategories[cat][0] || null;
+    }).filter(x=>x);
+    const recipe = [...chosen, ...extras];
+    const output = document.getElementById('output');
+    output.innerHTML = `
+      <h2>🔀 Remix of ${name}</h2>
+      <p><strong>Your version uses:</strong> ${recipe.join(', ')}</p>
+    `;
+    if (window.generateFlavorStory) generateFlavorStory(name, recipe);
+  }
+
+  // GPT-flavor placeholder
+  async function generateFlavorStory(baseName, ingredients) {
+    const out = document.getElementById('output');
+    out.innerHTML += `<p><em>Generating flavor story…</em></p>`;
+    // Insert your OpenAI API fetch code here as before
+  }
+
+  function getRandomName() {
+    const adj = ["Sunset","Tiki","Coconut","Island","Golden"];
+    const noun = ["Dream","Storm","Breeze","Splash"];
+    return adj[Math.floor(Math.random()*adj.length)] + ' ' +
+           noun[Math.floor(Math.random()*noun.length)];
+  }
+
+  async function generateCocktails() {
+    const spirits = document.getElementById("spirits").value.split(",").map(i=>i.trim());
+    const mixers = document.getElementById("mixers").value.split(",").map(i=>i.trim());
+    const juices = document.getElementById("juices").value.split(",").map(i=>i.trim());
+    const flavors = document.getElementById("flavors").value.split(",").map(i=>i.trim());
+    const tools = document.getElementById("tools").value.toLowerCase();
+    const all = [...spirits, ...mixers, ...juices, ...flavors].filter(i=>i);
+
+    const output = document.getElementById("output");
+    output.innerHTML = `<h2>🍹 Your Island‑Inspired Creations</h2>`;
+
+    for (let i = 0; i < 2; i++) {
+      const name = getRandomName();
+      const spirit = spirits[Math.floor(Math.random()*spirits.length)] || '';
+      const juice = juices[Math.floor(Math.random()*juices.length)] || '';
+      const mixer = mixers[Math.floor(Math.random()*mixers.length)] || '';
+      const flavor = flavors[Math.floor(Math.random()*flavors.length)] || '';
+      const method = tools.includes("blender") ? 'Blend with ice.' :
+                     tools.includes("shaker") ? 'Shake with ice.' :
+                     'Stir over ice.';
+      output.innerHTML += `
+        <div><h3>${name}</h3>
+        <ul>
+          <li>${spirit}</li>
+          <li>${juice}</li>
+          <li>${mixer}</li>
+          <li>${flavor}</li>
+        </ul>
+        <p><strong>Instructions:</strong> ${method}</p></div>`;
+    }
+  }
+</script>
+</body>
+</html>
